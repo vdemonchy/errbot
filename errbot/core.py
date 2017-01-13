@@ -271,11 +271,22 @@ class ErrBot(Backend, StoreMixin):
         args = ''
         if not only_check_re_command:
             if len(text_split) > 1:
-                command = (text_split[0] + '_' + text_split[1]).lower()
-                with self._gbl:
-                    if command in self.commands:
-                        cmd = command
-                        args = ' '.join(text_split[2:])
+                # Support nested subcommands
+                if len(text_split) > self.bot_config.SUBCOMMAND_MAX_LENGTH:
+                    sc_limit = self.bot_config.SUBCOMMAND_MAX_LENGTH
+                else:
+                    sc_limit = len(text_split)
+
+                for i in range(sc_limit, 0, -1):
+                    command = text_split[0]
+                    for j in range(1, (sc_limit+1-i)):
+                        command += '_' + text_split[j]
+                    command = command.lower()
+                    with self._gbl:
+                        if command in self.commands:
+                            cmd = command
+                            args = ' '.join(text_split[(sc_limit+1-i):])
+                            break
 
             if not cmd:
                 command = text_split[0].lower()
